@@ -1,3 +1,4 @@
+// 1 foot == 10 "units"
 var xo = 20;
 var yo = 20;
 var inner_rad = 125;
@@ -22,7 +23,11 @@ var track_min_width = outer_rad - inner_rad - centre_offset;
 var track_max_width = outer_rad - inner_rad + centre_offset;
 
 var player_radius = ((track_min_width / 4) * 0.5) * 0.85;
+var blocker_count = 8;
+var blockers_per_team = blocker_count / 2;
 var players = [];
+
+var max_pack_distance = 100;
 
 var start = function () {
     this.ox = this.attr("cx");
@@ -37,10 +42,26 @@ up = function () {
     define_pack(players);
 };
 
-function make_player(R, x, y, rad, colour, team) {
-    var player = R.circle(x, y, rad);
-    player.attr({fill: colour, stroke: "none", opacity: .5});
+function make_player(R, x, y, num, colour, team) {
+    var player = R.circle(x, y + track_min_width / blockers_per_team * num, player_radius);
+    player.attr({
+        fill: colour,
+        stroke: "red",
+        "stroke-width": 2,
+        opacity: .5});
     player.data("team", team);
+    player.data("label", team + " " + num);
+    // player.hover(function hoverIn() {
+    //   this.animate({
+    //     r: max_pack_distance,
+    //     opacity: 0.1
+    //   }, 500);
+    // }, function hoverOut() {
+    //   this.animate({
+    //     r: player_radius,
+    //     opacity: 0.5
+    //   }, 500);
+    // });
     return player;
 }
 function load() {
@@ -52,16 +73,15 @@ function load() {
     // TODO: express these in term of contstants above.
     var jam_line_offset_ax = 615;
     var jam_line_offset_bx = 615 - player_radius - 10;
-    var jam_line_offset_ay = 427;
-    var jam_line_offset_by = 427;
+    var jam_line_offset_y = 427;
 
-    for (var i = 0; i < 4; i++) {
-        var track_part = track_min_width / 4 * i;
-        var a = make_player(R, jam_line_offset_ax, jam_line_offset_ay + track_part,
-                            player_radius, "hsb(.3, 1, 1)", "a");
+    for (var i = 0; i < blockers_per_team; i++) {
+        //var track_part = track_min_width / blockers_per_team * i;
+        var a = make_player(R, jam_line_offset_ax, jam_line_offset_y,
+                            i, "hsb(.3, 1, 1)", "a");
 
-        var b = make_player(R, jam_line_offset_bx, jam_line_offset_by + track_part,
-                            player_radius, "hsb(.8, 1, 1)", "b");
+        var b = make_player(R, jam_line_offset_bx, jam_line_offset_y,
+                            i, "hsb(.8, 1, 1)", "b");
 
         st.push(a, b);
         players.push(a);
@@ -98,8 +118,17 @@ function deg2rad(degs) {
     return degs * (Math.PI / 180);
 }
 
+function distance(p1, p2) {
+    // TODO: this should be calculated based on a line parallel to the inside
+    //       track boundary. For now, straight-line distance is close enough.
+    var dx = p1.cx - p2.cx;
+    var dy = p1.cy - p2.cy;
+    return Math.sqrt(dx * dx + dy * dy);
+}
 function define_pack(players) {
     console.log("Define pack!");
+    var potential_packs = [];
+
     players.forEach(function(s){ console.log("Found someone from team " + s.data("team") + " at [" + s.attr("cx") + "," + s.attr("cy") + "]"); });
 }
 
