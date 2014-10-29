@@ -11,14 +11,8 @@ body {
     top: 50%;
     width: 640px;
 }
-#copy {
-    bottom: 0;
-    font: 300 .7em "Helvetica Neue", Helvetica, "Arial Unicode MS", Arial, sans-serif;
-    position: absolute;
-    right: 1em;
-    text-align: right;
-}
-#copy a {
-    color: #fff;
-}
 
+#blurb {
+    top: 650px;
+    position: absolute;
+}
