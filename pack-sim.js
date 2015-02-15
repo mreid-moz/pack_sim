@@ -27,6 +27,9 @@ var blocker_count = 8;
 var blockers_per_team = blocker_count / 2;
 var players = [];
 
+var innerPath = null;
+var outerPath = null;
+
 var max_pack_distance = 100;
 
 var start = function () {
@@ -39,6 +42,7 @@ move = function (dx, dy) {
 },
 up = function () {
     this.animate({r: player_radius, opacity: .5}, 500, ">");
+    update_bounds(players);
     define_pack(players);
 };
 
@@ -50,8 +54,10 @@ function make_player(R, x, y, num, colour, team) {
         "stroke-width": 2,
         opacity: .5});
     player.data("team", team);
-    player.data("label", team + " " + num);
+    player.data("label", team + num);
+    player.data("in_bounds", true);
     // player.hover(function hoverIn() {
+
     //   this.animate({
     //     r: max_pack_distance,
     //     opacity: 0.1
@@ -88,8 +94,6 @@ function load() {
         players.push(b);
     }
 
-    //players = [a1, a2, a3, a4, b1, b2, b3, b4];
-
     st.drag(move, start, up);
 }
 
@@ -121,15 +125,30 @@ function deg2rad(degs) {
 function distance(p1, p2) {
     // TODO: this should be calculated based on a line parallel to the inside
     //       track boundary. For now, straight-line distance is close enough.
-    var dx = p1.cx - p2.cx;
-    var dy = p1.cy - p2.cy;
+    var dx = p1.attr("cx") - p2.attr("cx");
+    var dy = p1.attr("cy") - p2.attr("cy");
     return Math.sqrt(dx * dx + dy * dy);
 }
+
+function update_bounds(players) {
+    for (var i = 0; i < players.length; i++) {
+        // Check if this player is in bounds, straddling, or out of bounds.
+
+    }
+}
+
 function define_pack(players) {
     console.log("Define pack!");
     var potential_packs = [];
 
-    players.forEach(function(s){ console.log("Found someone from team " + s.data("team") + " at [" + s.attr("cx") + "," + s.attr("cy") + "]"); });
+    for (var i = 0; i < blocker_count - 1; i++) {
+        for (var j = i + 1; j < blocker_count; j++) {
+            var d = distance(players[i], players[j]);
+            console.log("Distance from " + players[i].data("label") + " to " + players[j].data("label") + " is " + d);
+        }
+    }
+
+    //players.forEach(function(s){ console.log("Found " + s.data("label") + " at [" + s.attr("cx") + "," + s.attr("cy") + "]"); });
 }
 
 function draw_track(R) {
@@ -141,7 +160,7 @@ function draw_track(R) {
                      A(inner_rad, inner_cx2, inner_cy2 - inner_rad);
     var inner_top_line = L(inner_cx1, inner_cy1 - inner_rad);
     var inner_boundary = [inner_arc1, inner_bottom_line, inner_arc2, inner_top_line].join(" ");
-    var inner = R.path(inner_boundary).attr({stroke: "#000"});
+    innerPath = R.path(inner_boundary).attr({stroke: "#000"});
 
 
     var outer_arc1 = M(outer_cx1, outer_cy1 - outer_rad) + " " +
@@ -151,7 +170,7 @@ function draw_track(R) {
                      A(outer_rad, outer_cx2, outer_cy2 - outer_rad);
     var outer_top_line = L(outer_cx1, outer_cy1 - outer_rad);
     var outer_boundary = [outer_arc1, outer_bottom_line, outer_arc2, outer_top_line].join(" ");
-    var outer = R.path(outer_boundary).attr({stroke: "#000"});
+    outerPath = R.path(outer_boundary).attr({stroke: "#000"});
 
     // Centre dots:
     // R.circle(inner_cx1,inner_cy1,4).attr({fill: "#fff"});
