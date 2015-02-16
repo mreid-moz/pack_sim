@@ -27,35 +27,32 @@ var blocker_count = 8;
 var blockers_per_team = blocker_count / 2;
 var players = [];
 
-var innerPath = null;
-var outerPath = null;
+var inner_boundary = null;
+var outer_boundary = null;
 
 var max_pack_distance = 100;
 
 var start = function () {
     this.ox = this.attr("cx");
     this.oy = this.attr("cy");
-    this.animate({r: player_radius, opacity: .25}, 500, ">");
+    this.animate({r: player_radius}, 500, ">");
 },
 move = function (dx, dy) {
     this.attr({cx: this.ox + dx, cy: this.oy + dy});
 },
 up = function () {
-    this.animate({r: player_radius, opacity: .5}, 500, ">");
+    this.animate({r: player_radius}, 500, ">");
+    // TODO: just update the bounds of the player being moved.
     update_bounds(players);
     define_pack(players);
 };
 
 function make_player(R, x, y, num, colour, team) {
     var player = R.circle(x, y + track_min_width / blockers_per_team * num, player_radius);
-    player.attr({
-        fill: colour,
-        stroke: "red",
-        "stroke-width": 2,
-        opacity: .5});
+    player.attr({fill: colour, "stroke-width": 2});
     player.data("team", team);
     player.data("label", team + num);
-    player.data("in_bounds", true);
+    in_bounds(player);
     // player.hover(function hoverIn() {
 
     //   this.animate({
@@ -130,24 +127,101 @@ function distance(p1, p2) {
     return Math.sqrt(dx * dx + dy * dy);
 }
 
+function make_path_from_circle(rad, x, y) {
+    return M(x, y - rad) + " " +
+           A(rad, x, y + rad) + " " +
+           A(rad, x, y - rad);
+}
+
+
+function update_pbounds(player, in_bounds, colour, opacity) {
+    player.data("in_bounds", in_bounds);
+    player.attr({
+        stroke: colour,
+        opacity: opacity
+    });
+}
+function out_of_bounds(player) {
+    update_pbounds(player, false, "lightgrey", .4);
+}
+
+function straddling_bounds(player) {
+    update_pbounds(player, false, "grey", .6);
+}
+
+function in_bounds(player) {
+    update_pbounds(player, true, "black", .8);
+}
+
 function update_bounds(players) {
     for (var i = 0; i < players.length; i++) {
         // Check if this player is in bounds, straddling, or out of bounds.
-
+        var x = players[i].attr("cx");
+        var y = players[i].attr("cy");
+        var ppath = make_path_from_circle(player_radius, x, y);
+        var pts = Raphael.pathIntersection(inner_boundary, ppath);
+        if (pts.length == 2) {
+            // straddling inner boundary
+            straddling_bounds(players[i]);
+        } else {
+            pts = Raphael.pathIntersection(outer_boundary, ppath);
+            if (pts.length == 2) {
+                // Straddling outer boundary
+                straddling_bounds(players[i]);
+            } else {
+                // Totally out or totally in.
+                // Note we can safely check the centre point of the circle
+                // because if we're less than player_radius away, we would
+                // be intersecting the path.
+                if (Raphael.isPointInsidePath(inner_boundary, x, y)) {
+                    // Totally out on the interior of the track.
+                    out_of_bounds(players[i]);
+                } else {
+                    if (Raphael.isPointInsidePath(outer_boundary, x, y)) {
+                        // Totally within the track! yay!
+                        in_bounds(players[i]);
+                    } else {
+                        // Totally out on the outside of the track.
+                        out_of_bounds(players[i]);
+                    }
+                }
+            }
+        }
     }
 }
 
 function define_pack(players) {
-    console.log("Define pack!");
+    //console.log("Define pack!");
     var potential_packs = [];
 
     for (var i = 0; i < blocker_count - 1; i++) {
-        for (var j = i + 1; j < blocker_count; j++) {
+        if (!players[i].data("in_bounds")) {
+            console.log("Player " + players[i].data("label") + " is out of bounds. Skipping.");
+            continue;
+        }
+
+        var current_pack = [players[i].data("label")];
+        for (var j = 0; j < blocker_count; j++) {
+            if (j == i) continue;
+
+            if (!players[j].data("in_bounds")) {
+                //console.log("Player " + players[i].data("label") + " is out of bounds. Skipping.");
+                continue;
+            }
             var d = distance(players[i], players[j]);
             console.log("Distance from " + players[i].data("label") + " to " + players[j].data("label") + " is " + d);
+            if (d < 100) {
+                current_pack.push(players[j]);
+            } else {
+                console.log("Player " + players[j].data("label") + " is not in " +players[i].data("label") + "'s pack (they are " + d + " away)");
+            }
         }
+        potential_packs.push(current_pack);
     }
 
+    potential_packs.foreach(function(pack){
+        console.log("Found a potential pack: " + pack.join(","));
+    });
     //players.forEach(function(s){ console.log("Found " + s.data("label") + " at [" + s.attr("cx") + "," + s.attr("cy") + "]"); });
 }
 
@@ -159,8 +233,8 @@ function draw_track(R) {
     var inner_arc2 = M(inner_cx2, inner_cy2 + inner_rad) + " " +
                      A(inner_rad, inner_cx2, inner_cy2 - inner_rad);
     var inner_top_line = L(inner_cx1, inner_cy1 - inner_rad);
-    var inner_boundary = [inner_arc1, inner_bottom_line, inner_arc2, inner_top_line].join(" ");
-    innerPath = R.path(inner_boundary).attr({stroke: "#000"});
+    inner_boundary = [inner_arc1, inner_bottom_line, inner_arc2, inner_top_line].join(" ");
+    var inner = R.path(inner_boundary).attr({stroke: "#000"});
 
 
     var outer_arc1 = M(outer_cx1, outer_cy1 - outer_rad) + " " +
@@ -169,8 +243,8 @@ function draw_track(R) {
     var outer_arc2 = M(outer_cx2, outer_cy2 + outer_rad) + " " +
                      A(outer_rad, outer_cx2, outer_cy2 - outer_rad);
     var outer_top_line = L(outer_cx1, outer_cy1 - outer_rad);
-    var outer_boundary = [outer_arc1, outer_bottom_line, outer_arc2, outer_top_line].join(" ");
-    outerPath = R.path(outer_boundary).attr({stroke: "#000"});
+    outer_boundary = [outer_arc1, outer_bottom_line, outer_arc2, outer_top_line].join(" ");
+    var outer = R.path(outer_boundary).attr({stroke: "#000"});
 
     // Centre dots:
     // R.circle(inner_cx1,inner_cy1,4).attr({fill: "#fff"});
