@@ -211,16 +211,16 @@ function define_pack(players) {
         // var current_pack = [players[i].data("label")];
         for (var j = i+1; j < blocker_count; j++) {
 
-            if (!players[j].data("in_bounds")) {
-                //console.log("Player " + players[i].data("label") + " is out of bounds. Skipping.");
-                checked[players[i].data("label")] = true;
-                continue;
-            }
+            // if (!players[j].data("in_bounds")) {
+            //     //console.log("Player " + players[i].data("label") + " is out of bounds. Skipping.");
+            //     checked[players[i].data("label")] = true;
+            //     continue;
+            // }
 
             var d = distance(players[i], players[j]) / 10.0;
             distances[i][j] = d;
             distances[j][i] = d;
-            console.log("Distance from " + players[i].data("label") + " to " + players[j].data("label") + " is " + d);
+            //console.log("Distance from " + players[i].data("label") + " to " + players[j].data("label") + " is " + d);
             // if (d < 10) {
             //     current_pack.push(players[j].data("label"));
             // } else {
@@ -234,6 +234,7 @@ function define_pack(players) {
         var label = players[i].data("label");
 
         if (checked[label]) continue;
+        if (!players[i].data("in_bounds")) continue;
         console.log("Finding pack for player " + label);
 
         var current_pack = {};
@@ -243,24 +244,59 @@ function define_pack(players) {
             var l = pq.pop();
             for (var p = 0; p < blocker_count; p++) {
                 if (p == l) continue;
-                var plabel = players[p].data("label");
-                if (distances[p][l] < 10 && !current_pack[plabel]) {
-                    current_pack[plabel] = true;
-                    pq.push(p);
-                    checked[plabel] = true;
+                if (players[p].data("in_bounds")) {
+                    var plabel = players[p].data("label");
+                    if (distances[p][l] < 10 && !current_pack[plabel]) {
+                        current_pack[plabel] = true;
+                        pq.push(p);
+                        checked[plabel] = true;
+                    }
                 }
             }
         }
 
-        console.log("Pack for player " + label + ": [" + Object.keys(current_pack).sort().join(",") + "]");
+        var potential_pack = Object.keys(current_pack).sort();
+        if (potential_pack.length > 1)
+            potential_packs.push(potential_pack)
+
+        console.log("Pack for player " + label + ": [" + potential_pack.join(",") + "]");
     }
 
+    var lengths = {};
+    var largest_pack = null;
+    for (var i = 0; i < potential_packs.length; i++) {
+        var pack = potential_packs[i];
+        console.log("Checking pack #" + (i + 1) + ": " + potential_packs[i].join(","));
+        if (pack.length < 2) {
+            console.log("  pack disqualified: not enough members - only " + pack.length);
+        }
+        // Packs are sorted.  Easiest way to check for "one from each team" is to
+        // see if the first char of the first member is the same as the first char
+        // of the last member.
+        if (pack[0][0] == pack[pack.length-1][0]) {
+            console.log("  pack disquaified: all the same colour");
+            continue
+        }
 
+        if (lengths[pack.length]) lengths[pack.length]++;
+        else                      lengths[pack.length] = 1;
 
-    // potential_packs.forEach(function(pack){
-    //     console.log("Found a potential pack: " + pack.join(","));
-    // });
-    //players.forEach(function(s){ console.log("Found " + s.data("label") + " at [" + s.attr("cx") + "," + s.attr("cy") + "]"); });
+        if (largest_pack == null || largest_pack.length < pack.length) {
+            largest_pack = pack;
+        }
+    }
+
+    console.log("Lengths:" + JSON.stringify(lengths));
+    if (largest_pack != null) {
+        console.log("Largest pack was: " + largest_pack.join(","));
+
+        if (lengths[largest_pack.length] > 1) {
+            console.log("NO PACK! There were " + lengths[largest_pack.length] + " packs of equal size!");
+        }
+    } else {
+        console.log("NO PACK! There were no candidate packs.")
+    }
+
 }
 
 function draw_track(R) {
