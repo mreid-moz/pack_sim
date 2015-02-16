@@ -30,6 +30,8 @@ var players = [];
 var inner_boundary = null;
 var outer_boundary = null;
 
+var no_pack_message = null;
+
 var max_pack_distance = 100;
 
 var start = function () {
@@ -72,6 +74,9 @@ function load() {
     var st = R.set();
 
     draw_track(R);
+
+    no_pack_message = R.text(middle_cx, middle_cy, "Move the blockers around to see how it affects the pack.");
+    no_pack_message.attr({"font-family": "helvetica", "font-weight": "bold", "font-size": "15px"});
 
     // TODO: express these in term of contstants above.
     var jam_line_offset_ax = 615;
@@ -191,16 +196,13 @@ function update_bounds(players) {
 }
 
 function define_pack(players) {
-    //console.log("Define pack!");
-    var potential_packs = [];
-
     var distances = new Array(blocker_count);
     for (var i = 0; i < blocker_count; i++) {
         distances[i] = new Array(blocker_count);
     }
     var checked = {};
 
-    // Calculate distances.
+    // Calculate distances between blockers.
     for (var i = 0; i < blocker_count - 1; i++) {
         if (!players[i].data("in_bounds")) {
             console.log("Player " + players[i].data("label") + " is out of bounds. Skipping.");
@@ -208,37 +210,21 @@ function define_pack(players) {
             continue;
         }
 
-        // var current_pack = [players[i].data("label")];
         for (var j = i+1; j < blocker_count; j++) {
-
-            // if (!players[j].data("in_bounds")) {
-            //     //console.log("Player " + players[i].data("label") + " is out of bounds. Skipping.");
-            //     checked[players[i].data("label")] = true;
-            //     continue;
-            // }
-
             var d = distance(players[i], players[j]) / 10.0;
             distances[i][j] = d;
             distances[j][i] = d;
-            //console.log("Distance from " + players[i].data("label") + " to " + players[j].data("label") + " is " + d);
-            // if (d < 10) {
-            //     current_pack.push(players[j].data("label"));
-            // } else {
-            //     console.log("Player " + players[j].data("label") + " is not in " +players[i].data("label") + "'s pack (they are " + d + " away)");
-            // }
         }
-        // potential_packs.push(current_pack);
     }
 
+    var potential_packs = [];
     for (var i = 0; i < blocker_count; i++) {
         var label = players[i].data("label");
 
         if (checked[label]) continue;
         if (!players[i].data("in_bounds")) continue;
-        console.log("Finding pack for player " + label);
 
         var current_pack = {};
-        // current_pack[] = true;
         var pq = [i]
         while (pq.length > 0) {
             var l = pq.pop();
@@ -258,8 +244,6 @@ function define_pack(players) {
         var potential_pack = Object.keys(current_pack).sort();
         if (potential_pack.length > 1)
             potential_packs.push(potential_pack)
-
-        console.log("Pack for player " + label + ": [" + potential_pack.join(",") + "]");
     }
 
     var lengths = {};
@@ -286,17 +270,47 @@ function define_pack(players) {
         }
     }
 
+    var valid_pack_exists = false;
+    var no_pack = null;
     console.log("Lengths:" + JSON.stringify(lengths));
     if (largest_pack != null) {
         console.log("Largest pack was: " + largest_pack.join(","));
-
+        valid_pack_exists = true;
         if (lengths[largest_pack.length] > 1) {
-            console.log("NO PACK! There were " + lengths[largest_pack.length] + " packs of equal size!");
+            valid_pack_exists = false;
+            no_pack = "There are " + lengths[largest_pack.length] +
+                              " packs of equal size (" + largest_pack.length +
+                              " blockers each)";
+            console.log("NO PACK! " + no_pack);
         }
     } else {
-        console.log("NO PACK! There were no candidate packs.")
+        valid_pack_exists = false;
+        no_pack = "There are no candidate packs";
+        console.log("NO PACK! " + no_pack);
     }
 
+    if (valid_pack_exists) {
+        // no_pack_message.hide();
+        no_pack_message.attr({"text": "Pack contains the " + largest_pack.length + " blockers in red."});
+    } else {
+        no_pack_message.attr({"text": "NO PACK! " + no_pack});
+        // no_pack_message.show();
+    }
+
+    var in_pack = players[0].paper.set();
+    var not_in_pack = players[0].paper.set();
+    for (var i = 0; i < blocker_count; i++) {
+        var l = players[i].data("label")
+
+        if (valid_pack_exists && largest_pack.indexOf(l) >= 0) {
+            in_pack.push(players[i]);
+        } else {
+            not_in_pack.push(players[i]);
+        }
+    }
+
+    in_pack.attr({stroke: "orangered"});
+    not_in_pack.attr({stroke: "seagreen"});
 }
 
 function draw_track(R) {
