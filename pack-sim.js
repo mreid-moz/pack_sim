@@ -51,7 +51,7 @@ function make_player(R, x, y, num, colour, team) {
     var player = R.circle(x, y + track_min_width / blockers_per_team * num, player_radius);
     player.attr({fill: colour, "stroke-width": 2});
     player.data("team", team);
-    player.data("label", team + num);
+    player.data("label", team + (num + 1));
     in_bounds(player);
     // player.hover(function hoverIn() {
 
@@ -194,34 +194,72 @@ function define_pack(players) {
     //console.log("Define pack!");
     var potential_packs = [];
 
+    var distances = new Array(blocker_count);
+    for (var i = 0; i < blocker_count; i++) {
+        distances[i] = new Array(blocker_count);
+    }
+    var checked = {};
+
+    // Calculate distances.
     for (var i = 0; i < blocker_count - 1; i++) {
         if (!players[i].data("in_bounds")) {
             console.log("Player " + players[i].data("label") + " is out of bounds. Skipping.");
+            checked[players[i].data("label")] = true;
             continue;
         }
 
-        var current_pack = [players[i].data("label")];
-        for (var j = 0; j < blocker_count; j++) {
-            if (j == i) continue;
+        // var current_pack = [players[i].data("label")];
+        for (var j = i+1; j < blocker_count; j++) {
 
             if (!players[j].data("in_bounds")) {
                 //console.log("Player " + players[i].data("label") + " is out of bounds. Skipping.");
+                checked[players[i].data("label")] = true;
                 continue;
             }
-            var d = distance(players[i], players[j]);
+
+            var d = distance(players[i], players[j]) / 10.0;
+            distances[i][j] = d;
+            distances[j][i] = d;
             console.log("Distance from " + players[i].data("label") + " to " + players[j].data("label") + " is " + d);
-            if (d < 100) {
-                current_pack.push(players[j]);
-            } else {
-                console.log("Player " + players[j].data("label") + " is not in " +players[i].data("label") + "'s pack (they are " + d + " away)");
-            }
+            // if (d < 10) {
+            //     current_pack.push(players[j].data("label"));
+            // } else {
+            //     console.log("Player " + players[j].data("label") + " is not in " +players[i].data("label") + "'s pack (they are " + d + " away)");
+            // }
         }
-        potential_packs.push(current_pack);
+        // potential_packs.push(current_pack);
     }
 
-    potential_packs.foreach(function(pack){
-        console.log("Found a potential pack: " + pack.join(","));
-    });
+    for (var i = 0; i < blocker_count; i++) {
+        var label = players[i].data("label");
+
+        if (checked[label]) continue;
+        console.log("Finding pack for player " + label);
+
+        var current_pack = {};
+        // current_pack[] = true;
+        var pq = [i]
+        while (pq.length > 0) {
+            var l = pq.pop();
+            for (var p = 0; p < blocker_count; p++) {
+                if (p == l) continue;
+                var plabel = players[p].data("label");
+                if (distances[p][l] < 10 && !current_pack[plabel]) {
+                    current_pack[plabel] = true;
+                    pq.push(p);
+                    checked[plabel] = true;
+                }
+            }
+        }
+
+        console.log("Pack for player " + label + ": [" + Object.keys(current_pack).sort().join(",") + "]");
+    }
+
+
+
+    // potential_packs.forEach(function(pack){
+    //     console.log("Found a potential pack: " + pack.join(","));
+    // });
     //players.forEach(function(s){ console.log("Found " + s.data("label") + " at [" + s.attr("cx") + "," + s.attr("cy") + "]"); });
 }
 
