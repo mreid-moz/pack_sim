@@ -55,18 +55,6 @@ function make_player(R, x, y, num, colour, team) {
     player.data("team", team);
     player.data("label", team + (num + 1));
     in_bounds(player);
-    // player.hover(function hoverIn() {
-
-    //   this.animate({
-    //     r: max_pack_distance,
-    //     opacity: 0.1
-    //   }, 500);
-    // }, function hoverOut() {
-    //   this.animate({
-    //     r: player_radius,
-    //     opacity: 0.5
-    //   }, 500);
-    // });
     return player;
 }
 function load() {
