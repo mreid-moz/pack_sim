@@ -148,24 +148,38 @@ function distance2(p1, p2) {
         }
     }
 
-    // One player is on a straightaway:
-    if (p1mid) {
-        no_pack_message.attr({"text": "TODO: p1 is on a straightaway");
-    } else if (p2mid) {
-        no_pack_message.attr({"text": "TODO: p2 is on a straightaway");
-    } else {
-        no_pack_message.attr({"text": "TODO: Both players in the same turn");
-    }
-
     // Different turns
-    if (!p1mid && !p2mid && p1left == p2left) {
+    if (!p1mid && !p2mid && p1left != p2left) {
         // Both on turns, but not the same turn. Distance is <large>
         no_pack_message.attr({"text": "Distance: 1000 + " + Math.abs(p1x - p2x)});
         return 1000 + Math.abs(p1x - p2x);
     }
 
-    // if either player is on the straightaway, we use them as the reference
-    // since it's easier.
+    // One player is on a straightaway:
+    if (p1mid) {
+        if (p1top != p2top) {
+            // p2 is past the apex while p1 is still on the straightaway.
+            // Distance is <large>
+            no_pack_message.attr({"text": "p1 straightaway, p2 past apex. Distance: 1000 + " + Math.abs(p1x - p2x)});
+            return 1000 + Math.abs(p1x - p2x);
+        }
+
+        // p1 and p2 are on the same (vertical) half of the track
+        no_pack_message.attr({"text": "TODO: p1 is on a straightaway");
+    } else if (p2mid) {
+        if (p1top != p2top) {
+            // p2 is past the apex while p1 is still on the straightaway.
+            // Distance is <large>
+            no_pack_message.attr({"text": "p1 straightaway, p2 past apex. Distance: 1000 + " + Math.abs(p1x - p2x)});
+            return 1000 + Math.abs(p1x - p2x);
+        }
+
+        // p1 and p2 are on the same (vertical) half of the track
+        no_pack_message.attr({"text": "TODO: p2 is on a straightaway");
+    } else {
+        no_pack_message.attr({"text": "TODO: Both players in the same turn");
+    }
+
     var p1xend = null;
     if (p1x <= x_left) {
         p1xend = x_left;
