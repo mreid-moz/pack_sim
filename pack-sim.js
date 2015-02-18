@@ -165,7 +165,7 @@ function distance2(p1, p2) {
         }
 
         // p1 and p2 are on the same (vertical) half of the track
-        no_pack_message.attr({"text": "TODO: p1 is on a straightaway");
+        no_pack_message.attr({"text": "TODO: p1 is on a straightaway"});
     } else if (p2mid) {
         if (p1top != p2top) {
             // p2 is past the apex while p1 is still on the straightaway.
@@ -175,9 +175,9 @@ function distance2(p1, p2) {
         }
 
         // p1 and p2 are on the same (vertical) half of the track
-        no_pack_message.attr({"text": "TODO: p2 is on a straightaway");
+        no_pack_message.attr({"text": "TODO: p2 is on a straightaway"});
     } else {
-        no_pack_message.attr({"text": "TODO: Both players in the same turn");
+        no_pack_message.attr({"text": "TODO: Both players in the same turn"});
     }
 
     var p1xend = null;
@@ -188,7 +188,7 @@ function distance2(p1, p2) {
     } else {
         p1xend = p1x;
     }
-    var c = p1.paper.path(M(p1x, p1y) + " " + L(p1xend, y_mid)).attr({stroke: "black"});
+    //var c = p1.paper.path(M(p1x, p1y) + " " + L(p1xend, y_mid)).attr({stroke: "black"});
 
     // TODO: make a line perpendicular:
     var slope = (y_mid - p1y) / (p1xend - p1x);
@@ -202,7 +202,7 @@ function distance2(p1, p2) {
     } else {
         p2xend = p2x;
     }
-    var c = p2.paper.path(M(p2x, p2y) + " " + L(p2xend, y_mid)).attr({stroke: "white"});
+    //var c = p2.paper.path(M(p2x, p2y) + " " + L(p2xend, y_mid)).attr({stroke: "white"});
 
 
     // TODO: this should be calculated based on a line parallel to the inside
