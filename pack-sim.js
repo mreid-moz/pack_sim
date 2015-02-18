@@ -47,6 +47,7 @@ up = function () {
     // TODO: just update the bounds of the player being moved.
     update_bounds(players);
     define_pack(players);
+    distance2(players[0], players[1]);
 };
 
 function make_player(R, x, y, num, colour, team) {
@@ -110,6 +111,91 @@ function rad2deg(rads) {
 
 function deg2rad(degs) {
     return degs * (Math.PI / 180);
+}
+
+function distance2(p1, p2) {
+    var x_left = inner_cx1;
+    var x_right = inner_cx2;
+    var y_mid = inner_cy1;
+
+    var p1x = p1.attr("cx");
+    var p1y = p1.attr("cy");
+    var p2x = p2.attr("cx");
+    var p2y = p2.attr("cy");
+
+    var p1top = p1y < y_mid;
+    var p2top = p2y < y_mid;
+
+    var p1left  = p1x <= x_left;
+    var p1right = p1x >= x_right;
+    var p1mid = !p1left && !p1right;
+
+    var p2left  = p2x <= x_left;
+    var p2right = p2x >= x_right;
+    var p2mid = !p2left && !p2right;
+
+    // Easy cases:
+    // Both on a straightaway
+    if (p1mid && p2mid) {
+        if (p1top == p2top) {
+            // Same straightaway. Distance is just diff in x.
+            no_pack_message.attr({"text": "Distance: " + Math.abs(p1x - p2x)});
+            return Math.abs(p1x - p2x);
+        } else {
+            // Different straightaway. Distance is <large>
+            no_pack_message.attr({"text": "Distance: 1000 + " + Math.abs(p1x - p2x)});
+            return 1000 + Math.abs(p1x - p2x);
+        }
+    }
+
+    // One player is on a straightaway:
+    if (p1mid) {
+        no_pack_message.attr({"text": "TODO: p1 is on a straightaway");
+    } else if (p2mid) {
+        no_pack_message.attr({"text": "TODO: p2 is on a straightaway");
+    } else {
+        no_pack_message.attr({"text": "TODO: Both players in the same turn");
+    }
+
+    // Different turns
+    if (!p1mid && !p2mid && p1left == p2left) {
+        // Both on turns, but not the same turn. Distance is <large>
+        no_pack_message.attr({"text": "Distance: 1000 + " + Math.abs(p1x - p2x)});
+        return 1000 + Math.abs(p1x - p2x);
+    }
+
+    // if either player is on the straightaway, we use them as the reference
+    // since it's easier.
+    var p1xend = null;
+    if (p1x <= x_left) {
+        p1xend = x_left;
+    } else if (p1x >= x_right) {
+        p1xend = x_right;
+    } else {
+        p1xend = p1x;
+    }
+    var c = p1.paper.path(M(p1x, p1y) + " " + L(p1xend, y_mid)).attr({stroke: "black"});
+
+    // TODO: make a line perpendicular:
+    var slope = (y_mid - p1y) / (p1xend - p1x);
+    var perp = 1 / slope;
+
+    var p2xend = null;
+    if (p2x <= x_left) {
+        p2xend = x_left;
+    } else if (p2x >= x_right) {
+        p2xend = x_right;
+    } else {
+        p2xend = p2x;
+    }
+    var c = p2.paper.path(M(p2x, p2y) + " " + L(p2xend, y_mid)).attr({stroke: "white"});
+
+
+    // TODO: this should be calculated based on a line parallel to the inside
+    //       track boundary. For now, straight-line distance is close enough.
+    var dx = p1.attr("cx") - p2.attr("cx");
+    var dy = p1.attr("cy") - p2.attr("cy");
+    return Math.sqrt(dx * dx + dy * dy);
 }
 
 function distance(p1, p2) {
