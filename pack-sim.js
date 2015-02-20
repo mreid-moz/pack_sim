@@ -34,6 +34,14 @@ var no_pack_message = null;
 
 var max_pack_distance = 100;
 
+var phlx = inner_cx2 - 300;
+var phy = inner_cy2 + inner_rad - 1
+var pack_hug_left_path = M(phlx + 10, phy) + " " + L(phlx, phy) + " " + L(phlx, phy + 150) + " " + L(phlx + 10, phy + 150);
+var phrx = phlx + player_radius * 4 + 5;
+var pack_hug_right_path = M(phrx - 10, phy) + " " + L(phrx, phy) + " " + L(phrx, phy + 150) + " " + L(phrx - 10, phy + 150);
+var pack_hug_left = null;
+var pack_hug_right = null;
+
 var start = function () {
     this.ox = this.attr("cx");
     this.oy = this.attr("cy");
@@ -68,9 +76,10 @@ function load() {
     no_pack_message.attr({"font-family": "helvetica", "font-weight": "bold", "font-size": "15px"});
 
     // TODO: express these in term of contstants above.
-    var jam_line_offset_ax = 615;
-    var jam_line_offset_bx = 615 - player_radius - 10;
-    var jam_line_offset_y = 427;
+
+    var jam_line_offset_ax = inner_cx2 - 300 + player_radius + 5;
+    var jam_line_offset_bx = jam_line_offset_ax + player_radius + 10;
+    var jam_line_offset_y = inner_cy2 + inner_rad + player_radius + 8;
 
     for (var i = 0; i < blockers_per_team; i++) {
         //var track_part = track_min_width / blockers_per_team * i;
@@ -86,6 +95,13 @@ function load() {
     }
 
     st.drag(move, start, up);
+
+    // "Pack is here" lines
+    pack_hug_left = R.path(pack_hug_left_path);
+    pack_hug_left.attr({stroke: "green", "stroke-width": 3, opacity: 0.0});
+
+    pack_hug_right = R.path(pack_hug_right_path);
+    pack_hug_right.attr({stroke: "green", "stroke-width": 3, opacity: 0.0});
 }
 
 function M(x, y) {
@@ -377,28 +393,46 @@ function define_pack(players) {
         console.log("NO PACK! " + no_pack);
     }
 
-    if (valid_pack_exists) {
-        // no_pack_message.hide();
-        no_pack_message.attr({"text": "Pack contains the " + largest_pack.length + " blockers in red."});
-    } else {
-        no_pack_message.attr({"text": "NO PACK! " + no_pack});
-        // no_pack_message.show();
-    }
-
     var in_pack = players[0].paper.set();
     var not_in_pack = players[0].paper.set();
+    var leftmost_x = null;
+    var rightmost_x = null;
     for (var i = 0; i < blocker_count; i++) {
         var l = players[i].data("label")
 
         if (valid_pack_exists && largest_pack.indexOf(l) >= 0) {
             in_pack.push(players[i]);
+            if (leftmost_x == null || players[i].attr("cx") < leftmost_x)
+                leftmost_x = players[i].attr("cx");
+            if (rightmost_x == null || players[i].attr("cx") > rightmost_x)
+                rightmost_x = players[i].attr("cx");
         } else {
             not_in_pack.push(players[i]);
+            pack_hug_left.animate({opacity: 0.0}, 500, ">");
+            pack_hug_right.animate({opacity: 0.0}, 500, ">");
         }
     }
 
+    console.log("Leftmost x:" + leftmost_x);
+
     in_pack.attr({stroke: "orangered"});
     not_in_pack.attr({stroke: "seagreen"});
+
+    if (valid_pack_exists) {
+        // no_pack_message.hide();
+        var lPath = Raphael.transformPath(pack_hug_left_path, 'T' + (leftmost_x - player_radius - 5 - phlx) + ',0');
+        // testpath.animate({path: _transformedPath}, 1000);
+        pack_hug_left.animate({opacity: 1.0, path: lPath}, 500, "bounce");
+
+        var rPath = Raphael.transformPath(pack_hug_right_path, 'T' + (rightmost_x + player_radius + 5 - phrx) + ',0');
+        // testpath.animate({path: _transformedPath}, 1000);
+        pack_hug_right.animate({opacity: 1.0, path: rPath}, 500, "bounce");
+        // pack_hug_right.animate({opacity: 1.0}, 500, "bounce");
+        no_pack_message.attr({"text": "Pack contains the " + largest_pack.length + " blockers in red."});
+    } else {
+        no_pack_message.attr({"text": "NO PACK! " + no_pack});
+        // no_pack_message.show();
+    }
 }
 
 function draw_track(R) {
