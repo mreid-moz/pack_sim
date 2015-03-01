@@ -512,10 +512,12 @@ function define_pack(players) {
             if (rightmost_x == null || players[i].attr("cx") > rightmost_x) {
                 rightmost_x = players[i].attr("cx");
             }
-        } else {
+        } else if (players[i].attr("in_bounds")) {
             not_in_pack.push(players[i]);
             // pack_hug_left.animate({opacity: 0.0}, 500, ">");
             // pack_hug_right.animate({opacity: 0.0}, 500, ">");
+        } else {
+            not_in_play.push(players[i]);
         }
     }
 
@@ -523,6 +525,7 @@ function define_pack(players) {
 
     in_pack.attr({stroke: "white"});
     not_in_pack.attr({stroke: "red"});
+    not_in_play.attr({stroke: "gray"});
 
     if (valid_pack_exists) {
         // no_pack_message.hide();
