@@ -188,7 +188,7 @@ function get_region(x, y) {
     }
 }
 
-function distance_from_p(p1, p2) {
+function distance(p1, p2) {
     return distance_from(p1.attr("cx"), p1.attr("cy"), p2.attr("cx"), p2.attr("cy"));
 }
 
@@ -331,126 +331,19 @@ function distance_from(sx, sy, px, py) {
     return total;
 }
 
-function distance2(p1, p2) {
-    var x_left = inner_cx1;
-    var x_right = inner_cx2;
-    var y_mid = inner_cy1;
-
-    var p1x = p1.attr("cx");
-    var p1y = p1.attr("cy");
-    var p2x = p2.attr("cx");
-    var p2y = p2.attr("cy");
-
-    var p1top = p1y < y_mid;
-    var p2top = p2y < y_mid;
-
-    var p1left  = p1x <= x_left;
-    var p1right = p1x >= x_right;
-    var p1mid = !p1left && !p1right;
-
-    var p2left  = p2x <= x_left;
-    var p2right = p2x >= x_right;
-    var p2mid = !p2left && !p2right;
-
-
-    no_pack_message.attr({"text": "P1 is in region " + get_region(p1x, p1y) + ", P2 is in region " + get_region(p2x, p2y)});
-    return;
-
-    // Easy cases:
-    // Both on a straightaway
-    if (p1mid && p2mid) {
-        if (p1top == p2top) {
-            // Same straightaway. Distance is just diff in x.
-            no_pack_message.attr({"text": "Distance: " + Math.abs(p1x - p2x)});
-            return Math.abs(p1x - p2x);
-        } else {
-            // Different straightaway. Distance is <large>
-            no_pack_message.attr({"text": "Distance: 1000 + " + Math.abs(p1x - p2x)});
-            return 1000 + Math.abs(p1x - p2x);
-        }
-    }
-
-    // Different turns
-    if (!p1mid && !p2mid && p1left != p2left) {
-        // Both on turns, but not the same turn. Distance is <large>
-        no_pack_message.attr({"text": "Distance: 1000 + " + Math.abs(p1x - p2x)});
-        return 1000 + Math.abs(p1x - p2x);
-    }
-
-    // One player is on a straightaway:
-    if (p1mid) {
-        if (p1top != p2top) {
-            // p2 is past the apex while p1 is still on the straightaway.
-            // Distance is <large>
-            no_pack_message.attr({"text": "p1 straightaway, p2 past apex. Distance: 1000 + " + Math.abs(p1x - p2x)});
-            return 1000 + Math.abs(p1x - p2x);
-        }
-
-        // p1 and p2 are on the same (vertical) half of the track
-        no_pack_message.attr({"text": "TODO: p1 is on a straightaway"});
-
-        // p1.paper.path(M(x_right, y_mid + 100) + " " + L(x_right, y_mid) + " " + L(p2x, p2y)).attr({stroke: "white"});
-        // angle_fraction(x_right, y_mid + 100, x_right, y_mid, p2x, p2y);
-    } else if (p2mid) {
-        if (p1top != p2top) {
-            // p2 is past the apex while p1 is still on the straightaway.
-            // Distance is <large>
-            no_pack_message.attr({"text": "p1 straightaway, p2 past apex. Distance: 1000 + " + Math.abs(p1x - p2x)});
-            return 1000 + Math.abs(p1x - p2x);
-        }
-
-        // p1 and p2 are on the same (vertical) half of the track
-        no_pack_message.attr({"text": "TODO: p2 is on a straightaway"});
-    } else {
-        no_pack_message.attr({"text": "TODO: Both players in the same turn"});
-    }
-
-    var p1xend = null;
-    if (p1x <= x_left) {
-        p1xend = x_left;
-    } else if (p1x >= x_right) {
-        p1xend = x_right;
-    } else {
-        p1xend = p1x;
-    }
-    //var c = p1.paper.path(M(p1x, p1y) + " " + L(p1xend, y_mid)).attr({stroke: "black"});
-
-    // TODO: make a line perpendicular:
-    var slope = (y_mid - p1y) / (p1xend - p1x);
-    var perp = 1 / slope;
-
-    var p2xend = null;
-    if (p2x <= x_left) {
-        p2xend = x_left;
-    } else if (p2x >= x_right) {
-        p2xend = x_right;
-    } else {
-        p2xend = p2x;
-    }
-    //var c = p2.paper.path(M(p2x, p2y) + " " + L(p2xend, y_mid)).attr({stroke: "white"});
-
-
-    // TODO: this should be calculated based on a line parallel to the inside
-    //       track boundary. For now, straight-line distance is close enough.
-    var dx = p1.attr("cx") - p2.attr("cx");
-    var dy = p1.attr("cy") - p2.attr("cy");
-    return Math.sqrt(dx * dx + dy * dy);
-}
-
-function distance(p1, p2) {
-    // TODO: this should be calculated based on a line parallel to the inside
-    //       track boundary. For now, straight-line distance is close enough.
-    var dx = p1.attr("cx") - p2.attr("cx");
-    var dy = p1.attr("cy") - p2.attr("cy");
-    return Math.sqrt(dx * dx + dy * dy);
-}
+// function distance(p1, p2) {
+//     // TODO: this should be calculated based on a line parallel to the inside
+//     //       track boundary. For now, straight-line distance is close enough.
+//     var dx = p1.attr("cx") - p2.attr("cx");
+//     var dy = p1.attr("cy") - p2.attr("cy");
+//     return Math.sqrt(dx * dx + dy * dy);
+// }
 
 function make_path_from_circle(rad, x, y) {
     return M(x, y - rad) + " " +
            A(rad, x, y + rad) + " " +
            A(rad, x, y - rad);
 }
-
 
 function update_pbounds(player, in_bounds, colour, opacity) {
     player.data("in_bounds", in_bounds);
@@ -459,6 +352,7 @@ function update_pbounds(player, in_bounds, colour, opacity) {
         opacity: opacity
     });
 }
+
 function out_of_bounds(player) {
     update_pbounds(player, false, "lightgrey", .4);
 }
