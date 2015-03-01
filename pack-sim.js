@@ -55,7 +55,7 @@ up = function () {
     // TODO: just update the bounds of the player being moved.
     update_bounds(players);
     define_pack(players);
-    distance_from_p(players[0], players[1]);
+    distance(players[0], players[1]);
 };
 
 function make_player(R, x, y, num, colour, team) {
@@ -439,7 +439,7 @@ function define_pack(players) {
                 if (p == l) continue;
                 if (players[p].data("in_bounds")) {
                     var plabel = players[p].data("label");
-                    if (distances[p][l] < 10 && !current_pack[plabel]) {
+                    if ((distances[p][l] < 10 || distances[p][l] > 170) && !current_pack[plabel]) {
                         current_pack[plabel] = true;
                         pq.push(p);
                         checked[plabel] = true;
