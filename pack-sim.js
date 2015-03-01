@@ -33,6 +33,12 @@ var outer_boundary = null;
 var no_pack_message = null;
 
 var max_pack_distance = 100;
+var max_engagement_zone_distance = 200;
+
+
+var turn_distance = angle_distance(1);
+var straight_distance = inner_cx2 - inner_cx1;
+var lap_distance = straight_distance * 2 + turn_distance * 2;
 
 var phlx = inner_cx2 - 300;
 var phy = inner_cy2 + inner_rad - 1
@@ -185,10 +191,8 @@ function get_region(x, y) {
     }
 }
 
-// In feet, not pixels.
-// TODO: s/180/lap_distance constant/
 function absolute_distance(counter_clockwise_distance) {
-    var clockwise_distance = 180 - counter_clockwise_distance;
+    var clockwise_distance = lap_distance - counter_clockwise_distance;
     return Math.min(counter_clockwise_distance, clockwise_distance);
 }
 
@@ -205,9 +209,6 @@ function distance_from(sx, sy, px, py) {
 
     var sr = get_region(sx, sy);
     var pr = get_region(px, py);
-
-    var turn_distance = angle_distance(1);
-    var straight_distance = x_right - x_left;
 
     var r1d = 0,
         r2d = 0,
@@ -328,7 +329,7 @@ function distance_from(sx, sy, px, py) {
     var total = r1d + r2d + r3d + r4d;
 
     // If player is behind reference point, add a full lap.
-    if (total < 0) total += straight_distance * 2 + turn_distance * 2;
+    if (total < 0) total += lap_distance;
 
     var rds = [r1d, r2d, r3d, r4d].join("+");
     console.log("From (" + sx + "," + sy + ") to (" + px + "," + py + "): " + rds + "=" + total);
@@ -414,7 +415,7 @@ function define_pack(players) {
         }
 
         for (var j = i+1; j < blocker_count; j++) {
-            var d = distance(players[i], players[j]) / 10.0;
+            var d = distance(players[i], players[j]);
             distances[i][j] = d;
             distances[j][i] = d;
         }
@@ -435,7 +436,7 @@ function define_pack(players) {
                 if (p == l) continue;
                 if (players[p].data("in_bounds")) {
                     var plabel = players[p].data("label");
-                    if (absolute_distance(distances[p][l]) < 10 && !current_pack[plabel]) {
+                    if (absolute_distance(distances[p][l]) < max_pack_distance && !current_pack[plabel]) {
                         current_pack[plabel] = true;
                         pq.push(p);
                         checked[plabel] = true;
