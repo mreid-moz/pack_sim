@@ -75,14 +75,11 @@ function load() {
     no_pack_message = R.text(middle_cx, middle_cy, "Move the blockers around to see how it affects the pack.");
     no_pack_message.attr({"font-family": "helvetica", "font-weight": "bold", "font-size": "15px"});
 
-    // TODO: express these in term of contstants above.
-
     var jam_line_offset_ax = inner_cx2 - 300 + player_radius + 5;
     var jam_line_offset_bx = jam_line_offset_ax + player_radius + 10;
     var jam_line_offset_y = inner_cy2 + inner_rad + player_radius + 8;
 
     for (var i = 0; i < blockers_per_team; i++) {
-        //var track_part = track_min_width / blockers_per_team * i;
         var a = make_player(R, jam_line_offset_ax, jam_line_offset_y,
                             i, "hsb(.3, 1, 1)", "a");
 
@@ -142,7 +139,7 @@ function angle_fraction(x1, y1, x2, y2, x3, y3) {
         d23 = Math.pow(x2-x3,2) + Math.pow(y2-y3,2),
         d13 = Math.pow(x3-x1,2) + Math.pow(y3-y1,2);
     var a = Math.acos((d12+d23-d13) / Math.sqrt(4*d12*d23));
-    console.log("Angle is " + (a * 180/Math.PI) + "°");
+    // console.log("Angle is " + (a * 180/Math.PI) + "°");
 
     // Return angle as a fraction of a half circle.
     return a / Math.PI;
@@ -188,6 +185,13 @@ function get_region(x, y) {
     }
 }
 
+// In feet, not pixels.
+// TODO: s/180/lap_distance constant/
+function absolute_distance(counter_clockwise_distance) {
+    var clockwise_distance = 180 - counter_clockwise_distance;
+    return Math.min(counter_clockwise_distance, clockwise_distance);
+}
+
 function distance(p1, p2) {
     return distance_from(p1.attr("cx"), p1.attr("cy"), p2.attr("cx"), p2.attr("cy"));
 }
@@ -210,6 +214,7 @@ function distance_from(sx, sy, px, py) {
         r3d = 0,
         r4d = 0;
 
+    // Gross.
     if (sr == 1) {
         var sf = angle_fraction(x_right, y_mid + 100, x_right, y_mid, sx, sy);
         var sd = angle_distance(sf);
@@ -331,14 +336,6 @@ function distance_from(sx, sy, px, py) {
     return total;
 }
 
-// function distance(p1, p2) {
-//     // TODO: this should be calculated based on a line parallel to the inside
-//     //       track boundary. For now, straight-line distance is close enough.
-//     var dx = p1.attr("cx") - p2.attr("cx");
-//     var dy = p1.attr("cy") - p2.attr("cy");
-//     return Math.sqrt(dx * dx + dy * dy);
-// }
-
 function make_path_from_circle(rad, x, y) {
     return M(x, y - rad) + " " +
            A(rad, x, y + rad) + " " +
@@ -412,7 +409,6 @@ function define_pack(players) {
     // Calculate distances between blockers.
     for (var i = 0; i < blocker_count - 1; i++) {
         if (!players[i].data("in_bounds")) {
-            //console.log("Player " + players[i].data("label") + " is out of bounds. Skipping.");
             checked[players[i].data("label")] = true;
             continue;
         }
@@ -439,7 +435,7 @@ function define_pack(players) {
                 if (p == l) continue;
                 if (players[p].data("in_bounds")) {
                     var plabel = players[p].data("label");
-                    if ((distances[p][l] < 10 || distances[p][l] > 170) && !current_pack[plabel]) {
+                    if (absolute_distance(distances[p][l]) < 10 && !current_pack[plabel]) {
                         current_pack[plabel] = true;
                         pq.push(p);
                         checked[plabel] = true;
@@ -457,16 +453,16 @@ function define_pack(players) {
     var largest_pack = null;
     for (var i = 0; i < potential_packs.length; i++) {
         var pack = potential_packs[i];
-        //console.log("Checking pack #" + (i + 1) + ": " + potential_packs[i].join(","));
         if (pack.length < 2) {
             //console.log("  pack disqualified: not enough members - only " + pack.length);
+            continue;
         }
         // Packs are sorted.  Easiest way to check for "one from each team" is to
         // see if the first char of the first member is the same as the first char
         // of the last member.
         if (pack[0][0] == pack[pack.length-1][0]) {
             //console.log("  pack disquaified: all the same colour");
-            continue
+            continue;
         }
 
         if (lengths[pack.length]) lengths[pack.length]++;
@@ -486,8 +482,8 @@ function define_pack(players) {
         if (lengths[largest_pack.length] > 1) {
             valid_pack_exists = false;
             no_pack = "There are " + lengths[largest_pack.length] +
-                              " packs of equal size (" + largest_pack.length +
-                              " blockers each)";
+                      " packs of equal size (" + largest_pack.length +
+                      " blockers each)";
             //console.log("NO PACK! " + no_pack);
         }
     } else {
@@ -498,6 +494,7 @@ function define_pack(players) {
 
     var in_pack = players[0].paper.set();
     var not_in_pack = players[0].paper.set();
+    var not_in_play = players[0].paper.set();
     var leftmost_x = null;
     var rightmost_x = null;
     var pack_hug_y = null;
@@ -524,8 +521,8 @@ function define_pack(players) {
 
     //console.log("Leftmost x:" + leftmost_x);
 
-    in_pack.attr({stroke: "orangered"});
-    not_in_pack.attr({stroke: "seagreen"});
+    in_pack.attr({stroke: "white"});
+    not_in_pack.attr({stroke: "red"});
 
     if (valid_pack_exists) {
         // no_pack_message.hide();
