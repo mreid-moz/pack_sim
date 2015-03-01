@@ -537,7 +537,7 @@ function define_pack(players) {
         // testpath.animate({path: _transformedPath}, 1000);
         // pack_hug_right.animate({opacity: 1.0, path: rPath}, 500, "bounce");
         // pack_hug_right.animate({opacity: 1.0}, 500, "bounce");
-        no_pack_message.attr({"text": "Pack contains the " + largest_pack.length + " blockers in red."});
+        no_pack_message.attr({"text": "Pack contains the " + largest_pack.length + " blockers in white."});
     } else {
         no_pack_message.attr({"text": "NO PACK! " + no_pack});
         // no_pack_message.show();
