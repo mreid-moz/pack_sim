@@ -35,7 +35,6 @@ var no_pack_message = null;
 var max_pack_distance = 100;
 var max_engagement_zone_distance = 200;
 
-
 var turn_distance = angle_distance(1);
 var straight_distance = inner_cx2 - inner_cx1;
 var lap_distance = straight_distance * 2 + turn_distance * 2;
@@ -343,6 +342,10 @@ function make_path_from_circle(rad, x, y) {
            A(rad, x, y - rad);
 }
 
+function hug(back, front) {
+    // TODO: draw "pack is here" lines.
+}
+
 function update_pbounds(player, in_bounds, colour, opacity) {
     player.data("in_bounds", in_bounds);
     player.attr({
@@ -499,30 +502,70 @@ function define_pack(players) {
     var leftmost_x = null;
     var rightmost_x = null;
     var pack_hug_y = null;
-    for (var i = 0; i < blocker_count; i++) {
-        var l = players[i].data("label")
 
-        // TODO: find clockwise-most and anticlockwise-most blocker instead of
-        //       just left and right
+    // Fixed distance reference for finding front/back pack members.
+    var fd_x = inner_cx2;
+    var fd_y = inner_cy2 + inner_rad + 1;
+
+    var pack_players = [];
+    var furthest_distance = -1;
+    var furthest_player = null;
+
+    // The pack member furthest from a fixed point must be either the front or
+    // back of the pack (though we don't know which). The pack member furthest
+    // from the one we identify here is the other one. Then we just find out
+    // which is which.
+    for (var i = 0; i < blocker_count; i++) {
+        var p = players[i];
+        var l = p.data("label")
+
         if (valid_pack_exists && largest_pack.indexOf(l) >= 0) {
-            in_pack.push(players[i]);
-            if (leftmost_x == null || players[i].attr("cx") < leftmost_x) {
-                leftmost_x = players[i].attr("cx");
-                pack_hug_y = players[i].attr("cy");
+            pack_players.push(p);
+            var d = absolute_distance(distance_from(fd_x, fd_y, p.attr("cx"), p.attr("cy")));
+            if (d > furthest_distance) {
+                furthest_distance = d;
+                furthest_player = p;
             }
-            if (rightmost_x == null || players[i].attr("cx") > rightmost_x) {
-                rightmost_x = players[i].attr("cx");
-            }
-        } else if (players[i].attr("in_bounds")) {
-            not_in_pack.push(players[i]);
-            // pack_hug_left.animate({opacity: 0.0}, 500, ">");
-            // pack_hug_right.animate({opacity: 0.0}, 500, ">");
-        } else {
-            not_in_play.push(players[i]);
         }
     }
 
-    //console.log("Leftmost x:" + leftmost_x);
+    // The pack member furthest from the one we just identified is the other of
+    // the front/back pair.
+    if (valid_pack_exists) {
+        console.log("Furthest player from (" + fd_x + "," + fd_y + ") is " +
+            furthest_player.data("label") + " at (" + furthest_player.attr("cx") +
+            "," + furthest_player.attr("cy") + ")");
+
+        var other_fp = pack_players[0];
+        var other_fd = absolute_distance(distance(furthest_player, other_fp));
+        pack_players.forEach(function(pp){
+            var d = absolute_distance(distance(furthest_player, pp));
+            if (d > other_fd) {
+                other_fd = d;
+                other_fp = pp;
+            }
+        });
+
+        console.log("Other Furthest player is " + other_fp.data("label") +
+            " at (" + other_fp.attr("cx") + "," + other_fp.attr("cy") + ")");
+
+        // Guess.
+        var front_of_pack = furthest_player;
+        var back_of_pack = other_fp;
+        var spread = distance(back_of_pack, front_of_pack);
+
+        // Then check and correct if needed.
+        if (absolute_distance(spread) < spread) {
+            // swap them.
+            front_of_pack = other_fp;
+            back_of_pack = furthest_player;
+        }
+
+        front_of_pack.attr({stroke: "yellow"});
+        back_of_pack.attr({stroke: "deeppink"});
+
+        hug(back_of_pack, front_of_pack);
+    }
 
     in_pack.attr({stroke: "white"});
     not_in_pack.attr({stroke: "red"});
