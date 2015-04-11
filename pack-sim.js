@@ -71,6 +71,7 @@ function make_player(R, x, y, num, colour, team) {
     in_bounds(player);
     return player;
 }
+
 function load() {
     var R = Raphael(0, 0, "100%", "100%");
     var st = R.set();
@@ -331,7 +332,7 @@ function distance_from(sx, sy, px, py) {
     if (total < 0) total += lap_distance;
 
     var rds = [r1d, r2d, r3d, r4d].join("+");
-    console.log("From (" + sx + "," + sy + ") to (" + px + "," + py + "): " + rds + "=" + total);
+    //console.log("From (" + sx + "," + sy + ") to (" + px + "," + py + "): " + rds + "=" + total);
 
     return total;
 }
@@ -508,6 +509,7 @@ function define_pack(players) {
     var fd_y = inner_cy2 + inner_rad + 1;
 
     var pack_players = [];
+    var non_pack_players = [];
     var furthest_distance = -1;
     var furthest_player = null;
 
@@ -520,17 +522,26 @@ function define_pack(players) {
         var l = p.data("label")
 
         if (valid_pack_exists && largest_pack.indexOf(l) >= 0) {
+            in_pack.push(p);
             pack_players.push(p);
             var d = absolute_distance(distance_from(fd_x, fd_y, p.attr("cx"), p.attr("cy")));
             if (d > furthest_distance) {
                 furthest_distance = d;
                 furthest_player = p;
             }
+        } else {
+            non_pack_players.push(p);
         }
     }
 
     // The pack member furthest from the one we just identified is the other of
     // the front/back pair.
+
+    // Guess.
+    var front_of_pack = null;
+    var back_of_pack = null;
+    var spread = 0;
+
     if (valid_pack_exists) {
         console.log("Furthest player from (" + fd_x + "," + fd_y + ") is " +
             furthest_player.data("label") + " at (" + furthest_player.attr("cx") +
@@ -550,9 +561,9 @@ function define_pack(players) {
             " at (" + other_fp.attr("cx") + "," + other_fp.attr("cy") + ")");
 
         // Guess.
-        var front_of_pack = furthest_player;
-        var back_of_pack = other_fp;
-        var spread = distance(back_of_pack, front_of_pack);
+        front_of_pack = furthest_player;
+        back_of_pack = other_fp;
+        spread = distance(back_of_pack, front_of_pack);
 
         // Then check and correct if needed.
         if (absolute_distance(spread) < spread) {
@@ -561,17 +572,33 @@ function define_pack(players) {
             back_of_pack = furthest_player;
         }
 
-        front_of_pack.attr({stroke: "yellow"});
-        back_of_pack.attr({stroke: "deeppink"});
-
         hug(back_of_pack, front_of_pack);
     }
+
+    non_pack_players.forEach(function(p){
+        if (valid_pack_exists && p.data("in_bounds")) {
+            var front_distance = absolute_distance(distance(front_of_pack, p));
+            var back_distance = absolute_distance(distance(back_of_pack, p));
+            var min_distance = Math.min(front_distance, back_distance);
+            console.log("Player " + other_fp.data("label") + " is " + min_distance + " from the pack.");
+            if (min_distance > max_engagement_zone_distance) {
+                not_in_play.push(p);
+            } else {
+                // within engagement zone
+                not_in_pack.push(p);
+            }
+        } else {
+            not_in_play.push(p);
+        }
+    });
 
     in_pack.attr({stroke: "white"});
     not_in_pack.attr({stroke: "red"});
     not_in_play.attr({stroke: "gray"});
 
     if (valid_pack_exists) {
+        // front_of_pack.attr({stroke: "yellow"});
+        // back_of_pack.attr({stroke: "deeppink"});
         // no_pack_message.hide();
         // var lPath = Raphael.transformPath(pack_hug_left_path, 'T' + (leftmost_x - player_radius - 5 - phlx) + ',0');
         // testpath.animate({path: _transformedPath}, 1000);
