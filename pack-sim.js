@@ -28,7 +28,9 @@ var blockers_per_team = blocker_count / 2;
 var players = [];
 
 var inner_boundary = null;
+var inner_path = null;
 var outer_boundary = null;
+var outer_path = null;
 
 var no_pack_message = null;
 
@@ -39,13 +41,8 @@ var turn_distance = angle_distance(1);
 var straight_distance = inner_cx2 - inner_cx1;
 var lap_distance = straight_distance * 2 + turn_distance * 2;
 
-var phlx = inner_cx2 - 300;
-var phy = inner_cy2 + inner_rad - 1
-var pack_hug_left_path = M(phlx + 10, phy) + " " + L(phlx, phy) + " " + L(phlx, phy + 150) + " " + L(phlx + 10, phy + 150);
-var phrx = phlx + player_radius * 4 + 5;
-var pack_hug_right_path = M(phrx - 10, phy) + " " + L(phrx, phy) + " " + L(phrx, phy + 150) + " " + L(phrx - 10, phy + 150);
-var pack_hug_left = null;
-var pack_hug_right = null;
+var pack_hug_back = null;
+var pack_hug_front = null;
 
 var start = function () {
     this.ox = this.attr("cx");
@@ -68,6 +65,7 @@ function make_player(R, x, y, num, colour, team) {
     player.attr({fill: colour, "stroke-width": 2});
     player.data("team", team);
     player.data("label", team + (num + 1));
+    // player.t = R.text(x, y, ""+(num + 1));
     in_bounds(player);
     return player;
 }
@@ -332,7 +330,7 @@ function distance_from(sx, sy, px, py) {
     if (total < 0) total += lap_distance;
 
     var rds = [r1d, r2d, r3d, r4d].join("+");
-    //console.log("From (" + sx + "," + sy + ") to (" + px + "," + py + "): " + rds + "=" + total);
+    // console.log("From (" + sx + "," + sy + ") to (" + px + "," + py + "): " + rds + "=" + total);
 
     return total;
 }
@@ -344,7 +342,43 @@ function make_path_from_circle(rad, x, y) {
 }
 
 function hug(back, front) {
-    // TODO: draw "pack is here" lines.
+    var R = back.paper;
+    if (pack_hug_front != null) {
+        pack_hug_front.remove();
+    }
+    if (pack_hug_back != null) {
+        pack_hug_back.remove();
+    }
+
+    var bx = back.attr("cx");
+    var by = back.attr("cy");
+    var br = get_region(bx, by);
+    var fx = front.attr("cx");
+    var fy = front.attr("cy");
+    var fr = get_region(fx, fy);
+
+    var bp = M(inner_cx1, inner_cy1) + " " + L(bx, by);
+
+    if (br == 1) {
+        bp = M(inner_cx2, inner_cy2) + " " + L(bx, by);
+    } else if (br == 2 || br == 4) {
+        bp = M(bx, inner_cy2) + " " + L(bx, by);
+    }
+    pack_hug_back = R.path(bp);
+
+    var bi = Raphael.pathIntersection(inner_boundary, bp);
+    console.log("Back intersection: " + JSON.stringify(bi));
+
+    if (fr == 1) {
+        pack_hug_front = R.path(M(inner_cx2, inner_cy2) + " " + L(fx, fy));
+    } else if (fr == 2 || fr == 4) {
+        pack_hug_front = R.path(M(fx, inner_cy2) + " " + L(fx, fy));
+    } else {
+        pack_hug_front = R.path(M(inner_cx1, inner_cy1) + " " + L(fx, fy));
+    }
+
+    pack_hug_front.attr({stroke: "green", "stroke-width": 3});
+    pack_hug_back.attr({stroke: "green", "stroke-width": 3});
 }
 
 function update_pbounds(player, in_bounds, colour, opacity) {
@@ -536,8 +570,6 @@ function define_pack(players) {
 
     // The pack member furthest from the one we just identified is the other of
     // the front/back pair.
-
-    // Guess.
     var front_of_pack = null;
     var back_of_pack = null;
     var spread = 0;
@@ -600,14 +632,6 @@ function define_pack(players) {
         // front_of_pack.attr({stroke: "yellow"});
         // back_of_pack.attr({stroke: "deeppink"});
         // no_pack_message.hide();
-        // var lPath = Raphael.transformPath(pack_hug_left_path, 'T' + (leftmost_x - player_radius - 5 - phlx) + ',0');
-        // testpath.animate({path: _transformedPath}, 1000);
-        // pack_hug_left.animate({opacity: 1.0, path: lPath}, 500, "bounce");
-
-        // var rPath = Raphael.transformPath(pack_hug_right_path, 'T' + (rightmost_x + player_radius + 5 - phrx) + ',0');
-        // testpath.animate({path: _transformedPath}, 1000);
-        // pack_hug_right.animate({opacity: 1.0, path: rPath}, 500, "bounce");
-        // pack_hug_right.animate({opacity: 1.0}, 500, "bounce");
         no_pack_message.attr({"text": "Pack contains the " + largest_pack.length + " blockers in white."});
     } else {
         no_pack_message.attr({"text": "NO PACK! " + no_pack});
@@ -624,7 +648,7 @@ function draw_track(R) {
                      A(inner_rad, inner_cx2, inner_cy2 - inner_rad);
     var inner_top_line = L(inner_cx1, inner_cy1 - inner_rad);
     inner_boundary = [inner_arc1, inner_bottom_line, inner_arc2, inner_top_line].join(" ");
-    var inner = R.path(inner_boundary).attr({stroke: "#000"});
+    inner_path = R.path(inner_boundary).attr({stroke: "#000"});
 
 
     var outer_arc1 = M(outer_cx1, outer_cy1 - outer_rad) + " " +
@@ -634,14 +658,7 @@ function draw_track(R) {
                      A(outer_rad, outer_cx2, outer_cy2 - outer_rad);
     var outer_top_line = L(outer_cx1, outer_cy1 - outer_rad);
     outer_boundary = [outer_arc1, outer_bottom_line, outer_arc2, outer_top_line].join(" ");
-    var outer = R.path(outer_boundary).attr({stroke: "#000"});
-
-    // Centre dots:
-    // R.circle(inner_cx1,inner_cy1,4).attr({fill: "#fff"});
-    // R.circle(inner_cx2,inner_cy2,4).attr({fill: "#fff"});
-    // R.circle(outer_cx1,outer_cy1,4).attr({fill: "#bbb"});
-    // R.circle(outer_cx2,outer_cy2,4).attr({fill: "#bbb"});
-    // R.circle(middle_cx,middle_cy,4).attr({fill: "#f55"});
+    outer_path = R.path(outer_boundary).attr({stroke: "#000"});
 
     // Draw 10' lines:
     // Pivot line (1):
