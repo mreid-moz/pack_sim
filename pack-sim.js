@@ -45,12 +45,36 @@ var pack_hug_back = null;
 var pack_hug_front = null;
 
 var start = function () {
-    this.ox = this.attr("cx");
-    this.oy = this.attr("cy");
+    if (this.t) {
+        // "this" is the player
+        this.pox = this.attr("cx");
+        this.poy = this.attr("cy");
+
+        // move text too.
+        this.tox = this.t.attr("x");
+        this.toy = this.t.attr("y");
+    } else {
+        // "this" is the text
+        this.tox = this.attr("x");
+        this.toy = this.attr("y");
+
+        // move player too.
+        this.pox = this.p.attr("cx");
+        this.poy = this.p.attr("cy");
+    }
+
+
     this.animate({r: player_radius}, 500, ">");
 },
+
 move = function (dx, dy) {
-    this.attr({cx: this.ox + dx, cy: this.oy + dy});
+    if (this.t) {
+        this.attr({cx: this.pox + dx, cy: this.poy + dy});
+        this.t.attr({x: this.tox + dx, y: this.toy + dy});
+    } else {
+        this.attr({x: this.tox + dx, y: this.toy + dy});
+        this.p.attr({cx: this.pox + dx, cy: this.poy + dy});
+    }
 },
 up = function () {
     this.animate({r: player_radius}, 500, ">");
@@ -65,7 +89,8 @@ function make_player(R, x, y, num, colour, team) {
     player.attr({fill: colour, "stroke-width": 2});
     player.data("team", team);
     player.data("label", team + (num + 1));
-    // player.t = R.text(x, y, ""+(num + 1));
+    player.t = R.text(x, y + track_min_width / blockers_per_team * num, team + (num + 1));
+    player.t.p = player;
     in_bounds(player);
     return player;
 }
@@ -85,12 +110,12 @@ function load() {
 
     for (var i = 0; i < blockers_per_team; i++) {
         var a = make_player(R, jam_line_offset_ax, jam_line_offset_y,
-                            i, "hsb(.3, 1, 1)", "a");
+                            i, "hsb(.3, 1, 1)", "G");
 
         var b = make_player(R, jam_line_offset_bx, jam_line_offset_y,
-                            i, "hsb(.8, 1, 1)", "b");
+                            i, "hsb(.8, 1, 1)", "P");
 
-        st.push(a, b);
+        st.push(a, b, a.t, b.t);
         players.push(a);
         players.push(b);
     }
