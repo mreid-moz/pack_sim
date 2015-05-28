@@ -44,6 +44,14 @@ var lap_distance = straight_distance * 2 + turn_distance * 2;
 var pack_hug_back = null;
 var pack_hug_front = null;
 
+var DEBUG = false;
+
+function debug(msg) {
+    if (DEBUG) {
+        console.log(msg);
+    }
+}
+
 var start = function () {
     if (this.t) {
         // "this" is the player
@@ -81,7 +89,13 @@ up = function () {
     // TODO: just update the bounds of the player being moved.
     update_bounds(players);
     define_pack(players);
-    distance(players[0], players[1]);
+    //distance(players[0], players[1]);
+
+    var h = "";
+    for (var i = 0; i < players.length; i++) {
+        h += (i == 0 ? "" : ",") + players[i].attr("cx") + "," + players[i].attr("cy");
+    }
+    window.location.hash = h;
 };
 
 function make_player(R, x, y, num, colour, team) {
@@ -121,6 +135,21 @@ function load() {
     }
 
     st.drag(move, start, up);
+
+    if (window.location.hash && window.location.hash.length > 1) {
+        coords = window.location.hash.substring(1).split(",");
+        if (coords.length == players.length * 2) {
+            for (var i = 0; i < players.length; i++) {
+                var px = parseFloat(coords[i * 2]);
+                var py = parseFloat(coords[i * 2 + 1]);
+                debug("Setting player " + i + " to (" + px + "," + py + ")");
+                players[i].attr({cx: px, cy: py});
+                players[i].t.attr({x: px, y: py});
+            }
+            update_bounds(players);
+            define_pack(players);
+        }
+    }
 
     // "Pack is here" lines
     // pack_hug_left = R.path(pack_hug_left_path);
@@ -168,7 +197,7 @@ function angle_fraction(x1, y1, x2, y2, x3, y3) {
         d23 = Math.pow(x2-x3,2) + Math.pow(y2-y3,2),
         d13 = Math.pow(x3-x1,2) + Math.pow(y3-y1,2);
     var a = Math.acos((d12+d23-d13) / Math.sqrt(4*d12*d23));
-    // console.log("Angle is " + (a * 180/Math.PI) + "°");
+    // debug("Angle is " + (a * 180/Math.PI) + "°");
 
     // Return angle as a fraction of a half circle.
     return a / Math.PI;
@@ -355,7 +384,7 @@ function distance_from(sx, sy, px, py) {
     if (total < 0) total += lap_distance;
 
     var rds = [r1d, r2d, r3d, r4d].join("+");
-    // console.log("From (" + sx + "," + sy + ") to (" + px + "," + py + "): " + rds + "=" + total);
+    // debug("From (" + sx + "," + sy + ") to (" + px + "," + py + "): " + rds + "=" + total);
 
     return total;
 }
@@ -367,13 +396,19 @@ function make_path_from_circle(rad, x, y) {
 }
 
 function hug(back, front) {
-    var R = back.paper;
     if (pack_hug_front != null) {
         pack_hug_front.remove();
     }
     if (pack_hug_back != null) {
         pack_hug_back.remove();
     }
+
+    // If there's no pack, stop here.
+    if (back == null || front == null) {
+        return;
+    }
+
+    var R = back.paper;
 
     var bx = back.attr("cx");
     var by = back.attr("cy");
@@ -392,7 +427,7 @@ function hug(back, front) {
     pack_hug_back = R.path(bp);
 
     var bi = Raphael.pathIntersection(inner_boundary, bp);
-    console.log("Back intersection: " + JSON.stringify(bi));
+    debug("Back intersection: " + JSON.stringify(bi));
 
     if (fr == 1) {
         pack_hug_front = R.path(M(inner_cx2, inner_cy2) + " " + L(fx, fy));
@@ -518,14 +553,14 @@ function define_pack(players) {
     for (var i = 0; i < potential_packs.length; i++) {
         var pack = potential_packs[i];
         if (pack.length < 2) {
-            //console.log("  pack disqualified: not enough members - only " + pack.length);
+            //debug("  pack disqualified: not enough members - only " + pack.length);
             continue;
         }
         // Packs are sorted.  Easiest way to check for "one from each team" is to
         // see if the first char of the first member is the same as the first char
         // of the last member.
         if (pack[0][0] == pack[pack.length-1][0]) {
-            //console.log("  pack disquaified: all the same colour");
+            //debug("  pack disquaified: all the same colour");
             continue;
         }
 
@@ -539,21 +574,21 @@ function define_pack(players) {
 
     var valid_pack_exists = false;
     var no_pack = null;
-    //console.log("Lengths:" + JSON.stringify(lengths));
+    //debug("Lengths:" + JSON.stringify(lengths));
     if (largest_pack != null) {
-        //console.log("Largest pack was: " + largest_pack.join(","));
+        //debug("Largest pack was: " + largest_pack.join(","));
         valid_pack_exists = true;
         if (lengths[largest_pack.length] > 1) {
             valid_pack_exists = false;
             no_pack = "There are " + lengths[largest_pack.length] +
                       " packs of equal size (" + largest_pack.length +
                       " blockers each)";
-            //console.log("NO PACK! " + no_pack);
+            //debug("NO PACK! " + no_pack);
         }
     } else {
         valid_pack_exists = false;
         no_pack = "There are no candidate packs";
-        //console.log("NO PACK! " + no_pack);
+        //debug("NO PACK! " + no_pack);
     }
 
     var in_pack = players[0].paper.set();
@@ -600,7 +635,7 @@ function define_pack(players) {
     var spread = 0;
 
     if (valid_pack_exists) {
-        console.log("Furthest player from (" + fd_x + "," + fd_y + ") is " +
+        debug("Furthest player from (" + fd_x + "," + fd_y + ") is " +
             furthest_player.data("label") + " at (" + furthest_player.attr("cx") +
             "," + furthest_player.attr("cy") + ")");
 
@@ -614,7 +649,7 @@ function define_pack(players) {
             }
         });
 
-        console.log("Other Furthest player is " + other_fp.data("label") +
+        debug("Other Furthest player is " + other_fp.data("label") +
             " at (" + other_fp.attr("cx") + "," + other_fp.attr("cy") + ")");
 
         // Guess.
@@ -628,16 +663,16 @@ function define_pack(players) {
             front_of_pack = other_fp;
             back_of_pack = furthest_player;
         }
-
-        hug(back_of_pack, front_of_pack);
     }
+
+    hug(back_of_pack, front_of_pack);
 
     non_pack_players.forEach(function(p){
         if (valid_pack_exists && p.data("in_bounds")) {
             var front_distance = absolute_distance(distance(front_of_pack, p));
             var back_distance = absolute_distance(distance(back_of_pack, p));
             var min_distance = Math.min(front_distance, back_distance);
-            console.log("Player " + other_fp.data("label") + " is " + min_distance + " from the pack.");
+            debug("Player " + other_fp.data("label") + " is " + min_distance + " from the pack.");
             if (min_distance > max_engagement_zone_distance) {
                 not_in_play.push(p);
             } else {
@@ -723,7 +758,7 @@ function draw_track(R) {
 
     // inner_angle in radians
     var inner_angle = 2 * Math.asin(chord_len / (2 * inner_rad));
-    //console.log("central angle = " + rad2deg(inner_angle));
+    //debug("central angle = " + rad2deg(inner_angle));
 
     // (9) to (13)
     for (var i = 1; i <= 5; i++) {
