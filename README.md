@@ -2,7 +2,7 @@
 
 [Try out the simulator!](https://fish.halfbakers.com/pack_sim/)
 
-The URL to any given pack configuration can be shared/saved and will
+The URL to any given pack configuration [like this one](https://fish.halfbakers.com/pack_sim/#134.8125,401.8125,680.625,435.8125,242.8125,510.3125,635.625,469.3125,326.8125,497.8125,541.625,496.8125,380.8125,529.3125,465.625,512.3125) can be shared/saved and will
 re-load the same configuration.
 
 This is intended as a helper to look at scenarios with Pack Definition
